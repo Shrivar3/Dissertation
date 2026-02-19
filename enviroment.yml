@@ -1,0 +1,11 @@
+name: nsdissert
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy<2
+  - matplotlib<3.9
+  - scipy
+  - pip
+  - pip:
+      - -e .
