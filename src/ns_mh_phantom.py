@@ -9,8 +9,6 @@
 #
 # This file contains:
 #   - Definitions only (no plots, no "run end-to-end" at import time)
-#   - A clean end-to-end wrapper: run_ns_mh_phantom(...)
-#   - nested_sampling_toy signature edited to accept MH tuning params explicitly
 # ============================================================
 
 from __future__ import annotations
@@ -65,6 +63,19 @@ def _logdiffexp(a: float, b: float) -> float:
     if b >= a:
         return -np.inf
     return a + np.log(1.0 - np.exp(b - a))
+
+
+def _logmeanexp(arr: np.ndarray) -> float:
+    """
+    Stable log(mean(exp(arr))).
+    """
+    arr = np.asarray(arr, dtype=float)
+    if arr.size == 0:
+        return -np.inf
+    m = float(np.max(arr))
+    if not np.isfinite(m):
+        return -np.inf
+    return m + np.log(np.mean(np.exp(arr - m)))
 
 
 # ============================================================
@@ -214,7 +225,6 @@ def make_payload(sim: SimResult, include_intercept: bool, tau0_for_intercept: fl
     X, y = sim.X, sim.y
     n_obs, p_dim = X.shape
 
-    # Precompute XtX etc. for speed/consistency
     XtX = X.T @ X
     jitter = 1e-10
     Sigma_beta = n_obs * np.linalg.inv(XtX + jitter * np.eye(p_dim))
@@ -259,8 +269,6 @@ def make_payload(sim: SimResult, include_intercept: bool, tau0_for_intercept: fl
 
 # ============================================================
 # Constrained RW-MH kernel WITH phantom trace storage
-#   - per-iteration step-size tuning (warmup -> freeze)
-#   - stores CURRENT state after each step (phantoms)
 # ============================================================
 
 def mh_constrained_kernel_precond_with_trace(
@@ -270,8 +278,8 @@ def mh_constrained_kernel_precond_with_trace(
     L: np.ndarray,
     Lstar: float,
     step_size: float,
-    n_steps: int,                 # PRODUCTION steps (your ns_mcmc_steps)
-    warmup_steps: int,            # EXTRA steps used only for tuning
+    n_steps: int,
+    warmup_steps: int,
     target_accept: float,
     adapt_rate: float,
     step_size_min: float,
@@ -281,22 +289,6 @@ def mh_constrained_kernel_precond_with_trace(
 ) -> Tuple[np.ndarray, float, int, np.ndarray, np.ndarray, float]:
     """
     Constrained RW-MH in whitened space z = L^{-1} theta.
-
-    Warmup (warmup_steps):
-      - adapt step size towards target_accept
-      - optionally store warmup states (store_warmup)
-
-    Production (n_steps):
-      - freeze tuned step size
-      - store phantom states (always in production; plus warmup if store_warmup)
-
-    Returns:
-      theta_final,
-      acc_rate_over_all_tries,
-      tries,
-      trace_theta,
-      trace_logL,
-      tuned_step_size
     """
     set_seed(seed)
 
@@ -328,7 +320,6 @@ def mh_constrained_kernel_precond_with_trace(
 
     write_idx = 0
 
-    # ---- WARMUP (adapt step size, not counted in production) ----
     for _ in range(warmup_steps):
         tries += 1
 
@@ -343,7 +334,6 @@ def mh_constrained_kernel_precond_with_trace(
                 logp_x = logp_prop
                 accepts += 1
 
-        # Robbins–Monro style update using running acceptance
         acc_rate_running = max(1e-12, accepts / tries)
         s *= np.exp(float(adapt_rate) * (acc_rate_running - float(target_accept)))
         s = min(max(s, float(step_size_min)), float(step_size_max))
@@ -355,7 +345,6 @@ def mh_constrained_kernel_precond_with_trace(
 
     tuned_s = float(s)
 
-    # ---- PRODUCTION (freeze tuned step size) ----
     for _ in range(n_steps):
         tries += 1
 
@@ -398,8 +387,6 @@ def nested_sampling_toy(
     verbose: bool,
     verbose_interval: int,
     stable_repeats: int,
-
-    # --- MH tuning params (previously hidden globals) ---
     mh_target_accept: float,
     mh_adapt_rate: float,
     mh_warmup_steps: int,
@@ -409,9 +396,7 @@ def nested_sampling_toy(
 ) -> Dict[str, object]:
     """
     Nested Sampling with deterministic shrinkage and constrained RW-MH replacement kernel.
-    Target for replacement is the constrained prior: prior(theta) * 1{loglik(theta) > L*}.
-
-    MH tuning params are passed explicitly (no module-level globals).
+    Tail correction uses mean remaining live likelihood.
     """
     set_seed(seed)
 
@@ -428,6 +413,7 @@ def nested_sampling_toy(
         tau0=tau,
         include_intercept=include_intercept,
     )
+
     thetas = np.array([prior_draw() for _ in range(int(n_live))])
     logLs = np.array([float(loglik_fn(th)) for th in thetas], dtype=float)
 
@@ -453,20 +439,21 @@ def nested_sampling_toy(
     stable_counter = 0
 
     n_live_int = int(n_live)
+
     for i in range(1, int(n_iter_max) + 1):
         j = int(np.argmin(logLs))
         th_worst = thetas[j].copy()
         logL_worst = float(logLs[j])
         birth_worst = float(birth_logl_live[j])
 
-        # Deterministic shrinkage:
+        # Deterministic shrinkage
         logX_new = -i / float(n_live_int)
         log_w = _logdiffexp(logX_prev, logX_new)
 
         logZ_old = float(logZ)
         logZ_new = _logsumexp2(logZ_old, log_w + logL_worst)
 
-        # H update (kept close to your style)
+        # Information update
         if np.isfinite(logZ_new):
             w_new = np.exp(log_w + logL_worst - logZ_new)
             if np.isfinite(logZ_old):
@@ -479,7 +466,7 @@ def nested_sampling_toy(
             term_old = H + delta
             if not np.isfinite(term_old):
                 term_old = 0.0
-            term_new = (logL_worst - logZ_new)
+            term_new = logL_worst - logZ_new
             if not np.isfinite(term_new):
                 term_new = 0.0
             H = w_old * term_old + w_new * term_new
@@ -505,7 +492,7 @@ def nested_sampling_toy(
             x0=seed_point,
             L=L_full,
             Lstar=logL_worst,
-            step_size=float(step_size),        # initial guess each NS iteration (no carry-over)
+            step_size=float(step_size),
             n_steps=int(ns_mcmc_steps),
             warmup_steps=int(mh_warmup_steps),
             target_accept=float(mh_target_accept),
@@ -540,20 +527,24 @@ def nested_sampling_toy(
 
         if len(logZ_window) == int(patience):
             window_std = float(np.std(logZ_window))
-            log_tail = float(logX_prev + float(np.max(logLs)))
+
+            log_mean_live_tail = _logmeanexp(logLs)
+            log_tail = float(logX_prev + log_mean_live_tail)
             tail_gap = log_tail - float(logZ)
+
             if window_std < float(tol_logZ) and tail_gap < float(tol_tail):
                 stable_counter += 1
             else:
                 stable_counter = 0
+
             if stable_counter >= int(stable_repeats):
                 if bool(verbose):
                     print(f"Stopping at iter {i} (ΔlogZ<{tol_logZ}, tail<{tol_tail})")
                 break
 
-    # Tail contribution
-    logL_max_live = float(np.max(logLs))
-    logZ = _logsumexp2(float(logZ), float(logX_prev + logL_max_live))
+    # Final tail contribution using mean remaining live likelihood
+    log_mean_live = _logmeanexp(logLs)
+    logZ = _logsumexp2(float(logZ), float(logX_prev + log_mean_live))
 
     dead_thetas_arr = np.asarray(dead_thetas, dtype=float)
     dead_logLs_arr = np.asarray(dead_logLs, dtype=float)
@@ -561,7 +552,7 @@ def nested_sampling_toy(
 
     return {
         "logZ": float(logZ),
-        "tail_logL": float(logL_max_live),
+        "tail_logL": float(log_mean_live),
         "H": float(H),
 
         "dead_thetas": dead_thetas_arr,
@@ -574,9 +565,8 @@ def nested_sampling_toy(
         "trace_logZ": np.asarray(logZ_trace, dtype=float),
         "mean_acc_rate_constrained": float(np.mean(acc_rates) if acc_rates else np.nan),
 
-        # PHANTOMS (your required names)
-        "phantom_bins_theta": phantom_bins_theta,  # list of arrays
-        "phantom_bins_logL": phantom_bins_logL,    # list of arrays
+        "phantom_bins_theta": phantom_bins_theta,
+        "phantom_bins_logL": phantom_bins_logL,
         "step_sizes_used": np.asarray(step_sizes_used, dtype=float),
 
         "settings": dict(
@@ -598,9 +588,9 @@ def nested_sampling_toy(
 
 def build_global_candidate_pool_logL_unique(
     ns_out: Dict[str, object],
-    mode: str = "tol",        # "tol", "round", "exact"
-    decimals: int = 14,       # used if mode="round"
-    tol: float = 1e-12,       # used if mode="tol"
+    mode: str = "tol",
+    decimals: int = 14,
+    tol: float = 1e-12,
 ) -> np.ndarray:
     dead_logL = np.asarray(ns_out["dead_logLs"], dtype=float).ravel()
     pool_parts = [dead_logL]
@@ -662,12 +652,11 @@ def report_storage(ns_out: Dict[str, object], ns_mcmc_steps: int, unique_tol: fl
 
 
 # ============================================================
-# Clean end-to-end wrapper (call this from notebooks)
+# Clean end-to-end wrapper
 # ============================================================
 
 def run_ns_mh_phantom(
     *,
-    # Data
     n: int = 600,
     p: int = 12,
     use_correlated_X: bool = False,
@@ -677,10 +666,8 @@ def run_ns_mh_phantom(
     include_intercept: bool = False,
     data_seed: Optional[int] = 415,
 
-    # Prior
     tau_prior: float = 1.0,
 
-    # NS settings
     n_live: int = 100,
     ns_mcmc_steps: int = 20,
     n_iter_max: int = 1_000_000,
@@ -692,25 +679,18 @@ def run_ns_mh_phantom(
     verbose: bool = True,
     verbose_interval: int = 500,
 
-    # MH tuning
     mh_step_size: float = 0.103,
     mh_target_accept: float = 0.234,
     mh_adapt_rate: float = 0.05,
-    mh_warmup_steps: int = 10,
+    mh_warmup_steps: int = 20,
     mh_step_size_min: float = 1e-6,
     mh_step_size_max: float = 10.0,
     mh_store_warmup: bool = False,
 
-    # Convenience: return sim/payload too?
     attach_sim: bool = True,
 ) -> Dict[str, object]:
     """
     End-to-end wrapper: simulate data -> payload -> preconditioner -> nested sampling.
-
-    - data_seed controls the dataset (fixed across runs if desired)
-    - ns_seed controls NS randomness (MH + replacement choices)
-
-    Returns ns_out dict (same structure as your original).
     """
     sim = simulate_logistic_data(
         n=int(n),
@@ -723,7 +703,11 @@ def run_ns_mh_phantom(
         seed=data_seed,
     )
 
-    payload = make_payload(sim, include_intercept=bool(include_intercept), tau0_for_intercept=float(tau_prior))
+    payload = make_payload(
+        sim,
+        include_intercept=bool(include_intercept),
+        tau0_for_intercept=float(tau_prior),
+    )
     L_full = build_preconditioner(sim.X, float(tau_prior), bool(include_intercept))
 
     ns_out = nested_sampling_toy(
@@ -756,15 +740,12 @@ def run_ns_mh_phantom(
 
     return ns_out
 
+
 # ============================================================
-# Optional: tiny timing helper (purely optional)
+# Optional timing helper
 # ============================================================
 
 def timed_run_ns_mh_phantom(**kwargs) -> Tuple[Dict[str, object], float]:
-    """
-    Convenience wrapper to time run_ns_mh_phantom.
-    Returns (ns_out, seconds).
-    """
     t0 = time.perf_counter()
     ns_out = run_ns_mh_phantom(**kwargs)
     t1 = time.perf_counter()
