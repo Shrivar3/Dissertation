@@ -5,7 +5,7 @@ import numpy as np
 from pathlib import Path
 from typing import Dict, Optional, Any, List
 
-from .ns_mh_phantom import run_ns_mh_phantom  # your canonical implementation
+from ns_mh_phantom import run_ns_mh_phantom  # your canonical implementation
 
 
 def run_multi_ns_and_save(
