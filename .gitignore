@@ -1,3 +1,7 @@
+# Ignore everything in results
 results/*
+
+# Allow specific useful outputs
 !results/test_runs/
 !results/test_runs/*.npz
+!results/test_runs/*.png
