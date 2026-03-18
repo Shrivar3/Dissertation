@@ -5,7 +5,7 @@ import numpy as np
 from pathlib import Path
 from typing import Dict, Optional, Any, List
 
-from .ns_mh_phantom import run_ns_mh_phantom  # your canonical implementation
+from ns_mh_phantom import run_ns_mh_phantom  # your canonical implementation
 
 
 def run_multi_ns_and_save(
@@ -64,8 +64,7 @@ def run_multi_ns_and_save(
     rng = np.random.RandomState(int(base_seed))
     run_seeds = rng.randint(0, 2**31 - 1, size=int(n_runs), dtype=np.int64)
 
-    # Fixed dataset seed if you want “algorithmic randomness only”
-    fixed_data_seed = int(base_seed) if not regenerate_data_each_run else None
+    fixed_data_seed = int(data_seed) if (not regenerate_data_each_run and data_seed is not None) else None
 
     logZs = np.empty(n_runs, dtype=float)
     Hs = np.empty(n_runs, dtype=float)

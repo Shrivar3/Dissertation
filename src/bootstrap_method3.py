@@ -19,7 +19,7 @@ import numpy as np
 import time
 from typing import Dict, Optional, Tuple
 
-from .bootstrap_common import (
+from bootstrap_common import (
     _logdiffexp,
     deterministic_log_weights_static_ns,
     compute_logZ_and_ESS_from_logw_and_ell,
