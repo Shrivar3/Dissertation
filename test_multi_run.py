@@ -19,7 +19,7 @@ RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 # SETTINGS
 # =====================================================
 
-N_RUNS = 5
+N_RUNS = 10
 N_LIVE = 100
 NS_MCMC_STEPS = 20
 MH_WARMUP_STEPS = 20

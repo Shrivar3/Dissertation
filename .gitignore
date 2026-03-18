@@ -1,7 +1,33 @@
-# Ignore everything in results
-results/*
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
-# Allow specific useful outputs
-!results/test_runs/
-!results/test_runs/*.npz
-!results/test_runs/*.png
+# Environments
+.venv/
+venv/
+env/
+
+# Packaging
+build/
+dist/
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Slurm logs
+slurm-*.out
+slurm-*.err
+
+# Temporary files
+tmp/
+temp/
+*.log
