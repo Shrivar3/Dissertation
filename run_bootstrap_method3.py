@@ -57,11 +57,17 @@ def format_time(seconds: float) -> str:
 
     seconds = int(seconds)
 
-    h = seconds // 3600
+    d = seconds // 86400
+
+    h = (seconds % 86400) // 3600
 
     m = (seconds % 3600) // 60
 
     s = seconds % 60
+
+    if d > 0:
+
+        return f"{d}d {h:02d}:{m:02d}:{s:02d}"
 
     return f"{h:02d}:{m:02d}:{s:02d}"
 
@@ -91,7 +97,9 @@ def eta_str(elapsed: float, done: int, total: int) -> str:
 LABEL = os.environ.get("LABEL", "nl100_m20_w20")
 
 
-BOOT_RUNS = int(os.environ.get("BOOT_RUNS", "35"))
+# Family-level seed bases
+
+BOOT_RUNS = int(os.environ.get("BOOT_RUNS", "35"))  # retained for compatibility / info
 
 DATA_SEED = int(os.environ.get("DATA_SEED", "415"))
 
@@ -100,10 +108,27 @@ NS_BASE_SEED = int(os.environ.get("NS_BASE_SEED", "1000"))
 BOOT_BASE_SEED = int(os.environ.get("BOOT_BASE_SEED", "2000"))
 
 
+# Chunking
+
+CHUNK_ID = int(os.environ.get("CHUNK_ID", "0"))
+
+CHUNK_SIZE = int(os.environ.get("CHUNK_SIZE", str(BOOT_RUNS)))
+
+RUN_START = CHUNK_ID * CHUNK_SIZE
+
+RUN_STOP = RUN_START + CHUNK_SIZE
+
+RUN_COUNT = RUN_STOP - RUN_START
+
+
+# Bootstrap controls
+
 N_BOOT_PER_RUN = int(os.environ.get("N_BOOT_PER_RUN", "200"))
 
 N_SHRINK = int(os.environ.get("N_SHRINK", "1"))
 
+
+# Lowest-pool controls
 
 LOWEST_POOL_N = int(os.environ.get("LOWEST_POOL_N", "1000"))
 
@@ -111,6 +136,13 @@ LOWEST_BLOCK_SIZE = int(os.environ.get("LOWEST_BLOCK_SIZE", "100"))
 
 LOWEST_POOL_SEED = int(os.environ.get("LOWEST_POOL_SEED", "415"))
 
+
+# Fixed NS seed used only to build the lowest pool for the whole family
+
+LOWEST_POOL_NS_SEED = int(os.environ.get("LOWEST_POOL_NS_SEED", str(NS_BASE_SEED)))
+
+
+# Data / model config
 
 n = int(os.environ.get("N", "600"))
 
@@ -130,6 +162,8 @@ include_intercept = os.environ.get("INCLUDE_INTERCEPT", "False").lower() == "tru
 tau_prior = float(os.environ.get("TAU_PRIOR", "1.0"))
 
 
+# NS config
+
 n_live = int(os.environ.get("N_LIVE", "100"))
 
 ns_mcmc_steps = int(os.environ.get("NS_MCMC_STEPS", "20"))
@@ -148,6 +182,8 @@ verbose = os.environ.get("VERBOSE", "False").lower() == "true"
 
 verbose_interval = int(os.environ.get("VERBOSE_INTERVAL", "500"))
 
+
+# MH config
 
 mh_step_size = float(os.environ.get("MH_STEP_SIZE", "0.10"))
 
@@ -179,12 +215,16 @@ NS_RUNS_DIR = BOOT_ROOT / "ns_runs_out"
 
 BOOT_DIR = BOOT_ROOT / "boot_method3_out"
 
+CHUNK_SUMMARY_DIR = BOOT_ROOT / "chunk_summaries"
+
 
 BOOT_ROOT.mkdir(parents=True, exist_ok=True)
 
 NS_RUNS_DIR.mkdir(parents=True, exist_ok=True)
 
 BOOT_DIR.mkdir(parents=True, exist_ok=True)
+
+CHUNK_SUMMARY_DIR.mkdir(parents=True, exist_ok=True)
 
 
 MULTI_RUN_REF_PATH = Path(
@@ -209,6 +249,7 @@ MULTI_RUN_REF_PATH = Path(
 
 dim = int(p + (1 if include_intercept else 0))
 
+
 TAG_BASE = (
 
     f"d{dim}_nl{int(n_live)}_m{int(ns_mcmc_steps)}_w{int(mh_warmup_steps)}"
@@ -216,6 +257,7 @@ TAG_BASE = (
     f"_n{int(n)}_p{int(p)}_ds{int(DATA_SEED)}"
 
 )
+
 
 TAG_LOW = (
 
@@ -225,7 +267,10 @@ TAG_LOW = (
 
     f"_lN{int(LOWEST_POOL_N)}"
 
+    f"_lpnsseed{int(LOWEST_POOL_NS_SEED)}"
+
 )
+
 
 TAG_FULL = f"{TAG_BASE}_{TAG_LOW}"
 
@@ -239,6 +284,8 @@ print(f"[config tag base] {TAG_BASE}")
 print(f"[config tag low ] {TAG_LOW}")
 
 print(f"[config tag full] {TAG_FULL}")
+
+print(f"[chunk] CHUNK_ID={CHUNK_ID} CHUNK_SIZE={CHUNK_SIZE} RUN_START={RUN_START} RUN_STOP={RUN_STOP}")
 
 
 # ============================================================
@@ -266,9 +313,20 @@ logZs_multi = np.asarray(ref["logZs"], dtype=float)
 logZs_multi = logZs_multi[np.isfinite(logZs_multi)]
 
 
+if logZs_multi.size == 0:
+
+    raise RuntimeError("Multi-run reference file contains no finite logZ values.")
+
+
 print(f"[multi-run ref] loaded {logZs_multi.size} finite logZ values")
 
-print(f"[multi-run ref] mean={logZs_multi.mean(): .6f}, sd={logZs_multi.std(ddof=1): .6f}")
+if logZs_multi.size > 1:
+
+    print(f"[multi-run ref] mean={logZs_multi.mean(): .6f}, sd={logZs_multi.std(ddof=1): .6f}")
+
+else:
+
+    print(f"[multi-run ref] mean={logZs_multi.mean(): .6f}, sd=nan")
 
 
 # ============================================================
@@ -294,6 +352,10 @@ def save_ns_out(ns_out: dict, ns_seed: int, data_seed: int, lowest_pool_logL: np
 
         tag_low=np.array([TAG_LOW], dtype=object),
 
+        chunk_id=int(CHUNK_ID),
+
+        chunk_size=int(CHUNK_SIZE),
+
         ns_seed=int(ns_seed),
 
         data_seed=int(data_seed),
@@ -312,7 +374,9 @@ def save_ns_out(ns_out: dict, ns_seed: int, data_seed: int, lowest_pool_logL: np
 
         lowest_pool_mode=np.array(["block_minima_for_ell0_only"], dtype=object),
 
-        lowest_block_size=int(LOWEST_BLOCK_SIZE),
+        lowest_pool_ns_seed=int(LOWEST_POOL_NS_SEED),
+
+        lowest_pool_block_size=int(LOWEST_BLOCK_SIZE),
 
         lowest_pool_seed=int(LOWEST_POOL_SEED),
 
@@ -358,6 +422,10 @@ def save_boot_out(out3: dict, ns_seed: int, boot_seed: int) -> Path:
 
         tag_low=np.array([TAG_LOW], dtype=object),
 
+        chunk_id=int(CHUNK_ID),
+
+        chunk_size=int(CHUNK_SIZE),
+
         ns_seed=int(ns_seed),
 
         boot_seed=int(boot_seed),
@@ -383,6 +451,7 @@ def save_boot_out(out3: dict, ns_seed: int, boot_seed: int) -> Path:
     )
 
     return out_path
+
 
 
 # ============================================================
@@ -486,7 +555,9 @@ def build_lowest_pool_logL_block_minima(
 
         raise RuntimeError("Lowest pool block-minima produced no finite values.")
 
+
     return logL_min
+
 
 
 # ============================================================
@@ -1119,6 +1190,7 @@ def method3_stochshrink_two_sided_chain_force_lowest0(
     }
 
 
+
 # ============================================================
 
 # INITIAL NS RUN TO BUILD LOWEST POOL
@@ -1126,9 +1198,10 @@ def method3_stochshrink_two_sided_chain_force_lowest0(
 # ============================================================
 
 
-ns_seed0 = int(NS_BASE_SEED + 0)
+print(f"[lowest-pool] building fixed lowest pool using LOWEST_POOL_NS_SEED={LOWEST_POOL_NS_SEED}")
 
-ns_out0 = run_ns_mh_phantom(
+
+ns_out_lowest = run_ns_mh_phantom(
 
     n=n,
 
@@ -1154,7 +1227,7 @@ ns_out0 = run_ns_mh_phantom(
 
     n_iter_max=n_iter_max,
 
-    ns_seed=ns_seed0,
+    ns_seed=LOWEST_POOL_NS_SEED,
 
     tol_logZ=tol_logZ,
 
@@ -1189,7 +1262,7 @@ ns_out0 = run_ns_mh_phantom(
 
 lowest_pool_logL = build_lowest_pool_logL_block_minima(
 
-    ns_out0,
+    ns_out_lowest,
 
     n_keep=LOWEST_POOL_N,
 
@@ -1215,7 +1288,7 @@ print(
 
 # ============================================================
 
-# MAIN BOOTSTRAP LOOP
+# MAIN CHUNK LOOP
 
 # ============================================================
 
@@ -1224,6 +1297,8 @@ logZ_boot_by_seed: List[np.ndarray] = []
 
 seed_list: List[int] = []
 
+boot_seed_list: List[int] = []
+
 ns_logZ_list: List[float] = []
 
 saved_ns_paths: List[Path] = []
@@ -1231,87 +1306,82 @@ saved_ns_paths: List[Path] = []
 saved_boot_paths: List[Path] = []
 
 
-for i in range(int(BOOT_RUNS)):
+for local_i, global_i in enumerate(range(RUN_START, RUN_STOP), start=1):
 
-    run_start = time.perf_counter()
+    run_start_time = time.perf_counter()
 
 
-    ns_seed = int(NS_BASE_SEED + i)
+    ns_seed = int(NS_BASE_SEED + global_i)
 
-    boot_seed = int(BOOT_BASE_SEED + i)
+    boot_seed = int(BOOT_BASE_SEED + global_i)
+
 
     seed_list.append(ns_seed)
 
+    boot_seed_list.append(boot_seed)
 
-    if i == 0:
 
-        ns_out_i = ns_out0
+    t_ns0 = time.perf_counter()
 
-        t_ns = 0.0
+    ns_out_i = run_ns_mh_phantom(
 
-    else:
+        n=n,
 
-        t_ns0 = time.perf_counter()
+        p=p,
 
-        ns_out_i = run_ns_mh_phantom(
+        use_correlated_X=use_correlated_X,
 
-            n=n,
+        rho=rho,
 
-            p=p,
+        sigma_beta=sigma_beta,
 
-            use_correlated_X=use_correlated_X,
+        sparsity=sparsity,
 
-            rho=rho,
+        include_intercept=include_intercept,
 
-            sigma_beta=sigma_beta,
+        data_seed=DATA_SEED,
 
-            sparsity=sparsity,
+        tau_prior=tau_prior,
 
-            include_intercept=include_intercept,
+        n_live=n_live,
 
-            data_seed=DATA_SEED,
+        ns_mcmc_steps=ns_mcmc_steps,
 
-            tau_prior=tau_prior,
+        n_iter_max=n_iter_max,
 
-            n_live=n_live,
+        ns_seed=ns_seed,
 
-            ns_mcmc_steps=ns_mcmc_steps,
+        tol_logZ=tol_logZ,
 
-            n_iter_max=n_iter_max,
+        tol_tail=tol_tail,
 
-            ns_seed=ns_seed,
+        patience=patience,
 
-            tol_logZ=tol_logZ,
+        stable_repeats=stable_repeats,
 
-            tol_tail=tol_tail,
+        verbose=False,
 
-            patience=patience,
+        verbose_interval=verbose_interval,
 
-            stable_repeats=stable_repeats,
+        mh_step_size=mh_step_size,
 
-            verbose=False,
+        mh_target_accept=mh_target_accept,
 
-            verbose_interval=verbose_interval,
+        mh_adapt_rate=mh_adapt_rate,
 
-            mh_step_size=mh_step_size,
+        mh_warmup_steps=mh_warmup_steps,
 
-            mh_target_accept=mh_target_accept,
+        mh_step_size_min=mh_step_size_min,
 
-            mh_adapt_rate=mh_adapt_rate,
+        mh_step_size_max=mh_step_size_max,
 
-            mh_warmup_steps=mh_warmup_steps,
+        mh_store_warmup=mh_store_warmup,
 
-            mh_step_size_min=mh_step_size_min,
+        attach_sim=False,
 
-            mh_step_size_max=mh_step_size_max,
+    )
 
-            mh_store_warmup=mh_store_warmup,
-
-            attach_sim=False,
-
-        )
-
-        t_ns = time.perf_counter() - t_ns0
+    t_ns = time.perf_counter() - t_ns0
 
 
     ns_logZ = float(ns_out_i["logZ"])
@@ -1385,20 +1455,27 @@ for i in range(int(BOOT_RUNS)):
     saved_boot_paths.append(p_boot)
 
 
-    run_time = time.perf_counter() - run_start
+    run_time = time.perf_counter() - run_start_time
 
     elapsed_total = time.perf_counter() - GLOBAL_START
 
 
+    z_mean = float(np.mean(z)) if z.size > 0 else np.nan
+
+    z_sd = float(np.std(z, ddof=1)) if z.size > 1 else np.nan
+
+
     print(
 
-        f"[run {i+1}/{BOOT_RUNS}] NS seed={ns_seed} -> NS logZ={ns_logZ: .6f} | "
+        f"[chunk {CHUNK_ID:03d} | run {local_i}/{RUN_COUNT} | global {global_i}] "
 
-        f"M3 seed={boot_seed} -> n={z.size} mean={z.mean(): .6f} sd={z.std(ddof=1): .6f} | "
+        f"NS seed={ns_seed} -> NS logZ={ns_logZ: .6f} | "
+
+        f"M3 seed={boot_seed} -> n={z.size} mean={z_mean: .6f} sd={z_sd: .6f} | "
 
         f"t_NS={format_time(t_ns)} t_M3={format_time(t_m3)} t_run={format_time(run_time)} | "
 
-        f"elapsed={format_time(elapsed_total)} ETA={eta_str(elapsed_total, i+1, int(BOOT_RUNS))} | "
+        f"elapsed={format_time(elapsed_total)} ETA={eta_str(elapsed_total, local_i, RUN_COUNT)} | "
 
         f"saved: {p_ns.name}"
 
@@ -1416,7 +1493,12 @@ logZ_boot_pooled = (
 )
 
 
-summary_path = BOOT_ROOT / f"bootstrap_summary_{LABEL}_{TAG_FULL}.npz"
+summary_path = CHUNK_SUMMARY_DIR / (
+
+    f"bootstrap_summary_{LABEL}_{TAG_FULL}_chunk{CHUNK_ID:03d}.npz"
+
+)
+
 
 np.savez_compressed(
 
@@ -1432,13 +1514,31 @@ np.savez_compressed(
 
     multi_run_ref_path=np.array([str(MULTI_RUN_REF_PATH)], dtype=object),
 
-    boot_runs=int(BOOT_RUNS),
+    chunk_id=int(CHUNK_ID),
+
+    chunk_size=int(CHUNK_SIZE),
+
+    run_start=int(RUN_START),
+
+    run_stop=int(RUN_STOP),
+
+    run_count=int(RUN_COUNT),
+
+    boot_runs_nominal=int(BOOT_RUNS),
 
     n_boot_per_run=int(N_BOOT_PER_RUN),
 
     n_shrink=int(N_SHRINK),
 
+    ns_base_seed=int(NS_BASE_SEED),
+
+    boot_base_seed=int(BOOT_BASE_SEED),
+
+    lowest_pool_ns_seed=int(LOWEST_POOL_NS_SEED),
+
     ns_seeds=np.asarray(seed_list, dtype=np.int64),
+
+    boot_seeds=np.asarray(boot_seed_list, dtype=np.int64),
 
     ns_logZs=np.asarray(ns_logZ_list, dtype=float),
 
@@ -1451,17 +1551,38 @@ np.savez_compressed(
 )
 
 
-print("\n=== Pooled Method (3) across NS seeds ===")
+print("\n=== Chunk-pooled Method (3) across NS seeds ===")
 
-print(f"[pooled] n={logZ_boot_pooled.size} mean={np.mean(logZ_boot_pooled): .6f} sd={np.std(logZ_boot_pooled, ddof=1): .6f}")
+if logZ_boot_pooled.size > 0:
 
-print(f"[NS logZs] mean={np.mean(ns_logZ_list): .6f} sd={np.std(ns_logZ_list, ddof=1): .6f}")
+    boot_mean = float(np.mean(logZ_boot_pooled))
+
+    boot_sd = float(np.std(logZ_boot_pooled, ddof=1)) if logZ_boot_pooled.size > 1 else np.nan
+
+    print(f"[chunk pooled] n={logZ_boot_pooled.size} mean={boot_mean: .6f} sd={boot_sd: .6f}")
+
+else:
+
+    print("[chunk pooled] n=0 mean=nan sd=nan")
+
+
+if len(ns_logZ_list) > 0:
+
+    ns_mean = float(np.mean(ns_logZ_list))
+
+    ns_sd = float(np.std(ns_logZ_list, ddof=1)) if len(ns_logZ_list) > 1 else np.nan
+
+    print(f"[NS logZs] mean={ns_mean: .6f} sd={ns_sd: .6f}")
+
+else:
+
+    print("[NS logZs] mean=nan sd=nan")
 
 
 print("\nSaved per-run NS outputs to:", NS_RUNS_DIR)
 
 print("Saved per-run bootstrap outputs to:", BOOT_DIR)
 
-print("Saved pooled summary to:", summary_path)
+print("Saved chunk summary to:", summary_path)
 
 print(f"\n[TIMER] total runtime = {format_time(time.perf_counter() - GLOBAL_START)}")

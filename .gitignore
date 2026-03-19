@@ -31,3 +31,7 @@ slurm-*.err
 tmp/
 temp/
 *.log
+
+# Ignore merged / combined result files only
+results/**/combined_*.npz
+results/**/merged_*.npz
