@@ -45,7 +45,7 @@ QQ_N_QUANTILES = 200
 
 QQ_RUNS_PER_FIG = 10
 
-QQ_AGG_MODE = "median"   # "median" or "mean"
+QQ_AGG_MODE = "mean"   # "median" or "mean"
 
 
 # Second-order bootstrap settings
@@ -588,7 +588,7 @@ print("Saved coverage pages.")
 # =====================================================
 
 
-summary_txt = OUT_DIR / f"diagnostic_summary_v2_{LABEL}.txt"
+summary_txt = OUT_DIR / f"diagnostic_summary_{LABEL}.txt"
 
 with open(summary_txt, "w", encoding="utf-8") as f:
 

@@ -1,0 +1,84 @@
+LABEL = nl300_m50_w50
+TRUE_LOGZ = -181.6405566802
+Number of bootstrap runs = 300
+Chunk directory = results/bootstrap_runs/nl300_m50_w50/chunk_summaries
+Output directory = results/bootstrap_runs/nl300_m50_w50/diagnostics
+QQ_AGG_MODE = mean
+COV_RUNS_PER_FIG = 50
+
+Saved files:
+  coverage_runs_001_050_nl300_m50_w50.png
+  coverage_runs_051_100_nl300_m50_w50.png
+  coverage_runs_101_150_nl300_m50_w50.png
+  coverage_runs_151_200_nl300_m50_w50.png
+  coverage_runs_201_250_nl300_m50_w50.png
+  coverage_runs_251_300_nl300_m50_w50.png
+  diagnostic_summary_nl300_m50_w50.txt
+  diagnostic_summary_v2_nl300_m50_w50.txt
+  qq_runs_001_010_mean_nl300_m50_w50.png
+  qq_runs_001_010_median_nl300_m50_w50.png
+  qq_runs_011_020_mean_nl300_m50_w50.png
+  qq_runs_011_020_median_nl300_m50_w50.png
+  qq_runs_021_030_mean_nl300_m50_w50.png
+  qq_runs_021_030_median_nl300_m50_w50.png
+  qq_runs_031_040_mean_nl300_m50_w50.png
+  qq_runs_031_040_median_nl300_m50_w50.png
+  qq_runs_041_050_mean_nl300_m50_w50.png
+  qq_runs_041_050_median_nl300_m50_w50.png
+  qq_runs_051_060_mean_nl300_m50_w50.png
+  qq_runs_051_060_median_nl300_m50_w50.png
+  qq_runs_061_070_mean_nl300_m50_w50.png
+  qq_runs_061_070_median_nl300_m50_w50.png
+  qq_runs_071_080_mean_nl300_m50_w50.png
+  qq_runs_071_080_median_nl300_m50_w50.png
+  qq_runs_081_090_mean_nl300_m50_w50.png
+  qq_runs_081_090_median_nl300_m50_w50.png
+  qq_runs_091_100_mean_nl300_m50_w50.png
+  qq_runs_091_100_median_nl300_m50_w50.png
+  qq_runs_101_110_mean_nl300_m50_w50.png
+  qq_runs_101_110_median_nl300_m50_w50.png
+  qq_runs_111_120_mean_nl300_m50_w50.png
+  qq_runs_111_120_median_nl300_m50_w50.png
+  qq_runs_121_130_mean_nl300_m50_w50.png
+  qq_runs_121_130_median_nl300_m50_w50.png
+  qq_runs_131_140_mean_nl300_m50_w50.png
+  qq_runs_131_140_median_nl300_m50_w50.png
+  qq_runs_141_150_mean_nl300_m50_w50.png
+  qq_runs_141_150_median_nl300_m50_w50.png
+  qq_runs_151_160_mean_nl300_m50_w50.png
+  qq_runs_151_160_median_nl300_m50_w50.png
+  qq_runs_161_170_mean_nl300_m50_w50.png
+  qq_runs_161_170_median_nl300_m50_w50.png
+  qq_runs_171_180_mean_nl300_m50_w50.png
+  qq_runs_171_180_median_nl300_m50_w50.png
+  qq_runs_181_190_mean_nl300_m50_w50.png
+  qq_runs_181_190_median_nl300_m50_w50.png
+  qq_runs_191_200_mean_nl300_m50_w50.png
+  qq_runs_191_200_median_nl300_m50_w50.png
+  qq_runs_201_210_mean_nl300_m50_w50.png
+  qq_runs_201_210_median_nl300_m50_w50.png
+  qq_runs_211_220_mean_nl300_m50_w50.png
+  qq_runs_211_220_median_nl300_m50_w50.png
+  qq_runs_221_230_mean_nl300_m50_w50.png
+  qq_runs_221_230_median_nl300_m50_w50.png
+  qq_runs_231_240_mean_nl300_m50_w50.png
+  qq_runs_231_240_median_nl300_m50_w50.png
+  qq_runs_241_250_mean_nl300_m50_w50.png
+  qq_runs_241_250_median_nl300_m50_w50.png
+  qq_runs_251_260_mean_nl300_m50_w50.png
+  qq_runs_251_260_median_nl300_m50_w50.png
+  qq_runs_261_270_mean_nl300_m50_w50.png
+  qq_runs_261_270_median_nl300_m50_w50.png
+  qq_runs_271_280_mean_nl300_m50_w50.png
+  qq_runs_271_280_median_nl300_m50_w50.png
+  qq_runs_281_290_mean_nl300_m50_w50.png
+  qq_runs_281_290_median_nl300_m50_w50.png
+  qq_runs_291_300_mean_nl300_m50_w50.png
+  qq_runs_291_300_median_nl300_m50_w50.png
+  qq_second_order_run001_nl300_m50_w50.png
+  wasserstein_vs_k_all_nl300_m50_w50.png
+  wasserstein_vs_k_first_100_nl300_m50_w50.png
+  wasserstein_vs_k_first_10_nl300_m50_w50.png
+  wasserstein_vs_k_first_30_nl300_m50_w50.png
+  wasserstein_vs_k_first_50_nl300_m50_w50.png
+  wasserstein_vs_k_first_70_nl300_m50_w50.png
