@@ -1,0 +1,37 @@
+LABEL = d72_ds72_nl1800_m50_w50
+Chunk directory = results/bootstrap_runs/d72_ds72_nl1800_m50_w50/chunk_summaries
+Output directory = results/bootstrap_runs/d72_ds72_nl1800_m50_w50/diagnostics
+Number of runs = 4
+QQ_AGG_MODE = mean
+QQ_N_QUANTILES = 200
+SECOND_ORDER_RUN_INDEX = 0
+SECOND_ORDER_REPS = 1000
+
+Multi-run NS mean   = -229.3592637168
+Multi-run NS median = -229.4383882892
+Multi-run NS sd     = 0.2437423668
+
+Mean(ns - boot_mean)   = 0.0081031416
+Median(ns - boot_mean) = 0.0077805164
+Mean(ns - boot_median) = 0.0077906824
+Median bootstrap sd    = 0.2404181750
+Mean bootstrap sd      = 0.2397246114
+
+Point-containment rate 90% = 1.000000
+Point-containment rate 95% = 1.000000
+Point-containment rate 99% = 1.000000
+
+Mean z-score   = 0.0342289022
+SD z-score     = 0.0686380133
+Mean percentile of NS within bootstrap = 0.5137500000
+
+Saved files:
+  bootstrap_sd_hist_d72_ds72_nl1800_m50_w50.png
+  diagnostic_summary_generic_d72_ds72_nl1800_m50_w50.txt
+  ns_percentile_hist_d72_ds72_nl1800_m50_w50.png
+  point_containment_runs_001_004_d72_ds72_nl1800_m50_w50.png
+  qq_runs_001_004_mean_d72_ds72_nl1800_m50_w50.png
+  qq_second_order_run001_d72_ds72_nl1800_m50_w50.png
+  wasserstein_vs_k_all_d72_ds72_nl1800_m50_w50.png
+  wasserstein_vs_k_first_4_d72_ds72_nl1800_m50_w50.png
+  zscore_hist_d72_ds72_nl1800_m50_w50.png
