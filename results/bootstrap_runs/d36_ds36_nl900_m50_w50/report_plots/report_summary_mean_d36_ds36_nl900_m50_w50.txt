@@ -30,6 +30,8 @@ Saved files:
   bootstrap_sd_dotplot_d36_ds36_nl900_m50_w50.png
   percentile_dotplot_d36_ds36_nl900_m50_w50.png
   qq_ribbon_mean_d36_ds36_nl900_m50_w50.png
+  qq_ribbon_median_d36_ds36_nl900_m50_w50.png
   report_summary_mean_d36_ds36_nl900_m50_w50.txt
+  report_summary_median_d36_ds36_nl900_m50_w50.txt
   spread_summary_bar_d36_ds36_nl900_m50_w50.png
   zscore_dotplot_d36_ds36_nl900_m50_w50.png

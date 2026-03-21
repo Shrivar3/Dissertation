@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 # =====================================================
 
 
-LABEL = "d72_ds72_nl1800_m50_w50"
+LABEL = "d36_ds36_nl900_m50_w50"
 
 
 ROOT = Path(f"results/bootstrap_runs/{LABEL}")
@@ -35,7 +35,7 @@ OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # Aggregation choice: "mean" or "median"
 
-AGG_MODE = "median"
+AGG_MODE = "mean"
 
 
 # Ribbon choice across runs
