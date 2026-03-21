@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 # =====================================================
 
 
-LABEL = "d36_ds36_nl900_m50_w50"
+LABEL = "d72_ds72_nl1800_m50_w50"
 
 
 ROOT = Path(f"results/bootstrap_runs/{LABEL}")
@@ -33,12 +33,12 @@ OUT_DIR = ROOT / "report_plots"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
-# Aggregation choice: "mean" or "median"
+# Aggregation choice for QQ plot: "mean" or "median"
 
 AGG_MODE = "mean"
 
 
-# Ribbon choice across runs
+# Ribbon choice across runs for QQ plot
 
 # e.g. (0.25, 0.75) for IQR ribbon
 
@@ -49,11 +49,17 @@ RIBBON_QUANTILES = (0.25, 0.75)
 
 QQ_N_QUANTILES = 200
 
-
 FIG_DPI = 250
 
 
-# Optional: sort runs for cleaner dot plots
+# Histogram settings
+
+HIST_BINS = 28
+
+HIST_USE_DENSITY = True
+
+
+# Optional sorting for cleaner dot plots
 
 SORT_BOOT_SD = True
 
@@ -62,11 +68,16 @@ SORT_PERCENTILES = False
 SORT_ZSCORES = False
 
 
-# Styling
+# Figure sizes
 
 QQ_FIGSIZE = (7.8, 6.0)
 
 DOT_FIGSIZE = (7.4, 4.8)
+
+HIST_FIGSIZE = (7.6, 5.2)
+
+BAR_FIGSIZE = (6.8, 4.6)
+
 
 MARKER_SIZE = 42
 
@@ -114,6 +125,24 @@ def percentile_of_value(sample: np.ndarray, value: float) -> float:
     sample = finite_1d(sample)
 
     return float(np.mean(sample <= value))
+
+
+
+def maybe_sorted(values: np.ndarray, do_sort: bool) -> tuple[np.ndarray, np.ndarray]:
+
+    values = np.asarray(values, dtype=float)
+
+    if do_sort:
+
+        vals = np.sort(values)
+
+    else:
+
+        vals = values.copy()
+
+    xpos = np.arange(1, len(vals) + 1)
+
+    return xpos, vals
 
 
 
@@ -197,30 +226,6 @@ def load_all_runs_from_chunks(chunk_dir: Path) -> tuple[list[np.ndarray], np.nda
 
 
 
-def maybe_sorted(values: np.ndarray, do_sort: bool) -> tuple[np.ndarray, np.ndarray]:
-
-    """
-
-    Returns sorted values and corresponding display positions.
-
-    """
-
-    values = np.asarray(values, dtype=float)
-
-    if do_sort:
-
-        vals = np.sort(values)
-
-    else:
-
-        vals = values.copy()
-
-    xpos = np.arange(1, len(vals) + 1)
-
-    return xpos, vals
-
-
-
 # =====================================================
 
 # LOAD DATA
@@ -256,7 +261,7 @@ print(f"Chunk directory: {CHUNK_DIR}")
 print(f"Output directory: {OUT_DIR}")
 
 
-# Multi-run reference distribution
+# Multi-run reference summaries
 
 q_ref, ref_curve = qcurve(ns_ref, n_q=QQ_N_QUANTILES)
 
@@ -294,16 +299,24 @@ percentiles_of_ns = np.array(
 z_scores = (ns_ref - boot_means) / boot_sds
 
 
-# Run-level quantile curves
+# Curves for QQ ribbon
 
 run_curves = np.array([np.quantile(finite_1d(z), q_ref) for z in boot_runs], dtype=float)
-
 
 agg_curve = aggregate_curves(run_curves, AGG_MODE)
 
 rib_lo = np.quantile(run_curves, RIBBON_QUANTILES[0], axis=0)
 
 rib_hi = np.quantile(run_curves, RIBBON_QUANTILES[1], axis=0)
+
+
+# Pooled bootstrap sample for histogram comparison
+
+boot_pooled = np.concatenate([finite_1d(z) for z in boot_runs])
+
+boot_pooled_mean = float(np.mean(boot_pooled))
+
+boot_pooled_median = float(np.median(boot_pooled))
 
 
 
@@ -327,7 +340,7 @@ plt.fill_between(
 
     alpha=0.22,
 
-    label=f"Across-run ribbon ({int(100*RIBBON_QUANTILES[0])}–{int(100*RIBBON_QUANTILES[1])}%)",
+    label=f"Across-run ribbon ({int(100 * RIBBON_QUANTILES[0])}–{int(100 * RIBBON_QUANTILES[1])}%)",
 
 )
 
@@ -373,7 +386,99 @@ print("Saved QQ ribbon plot.")
 
 # =====================================================
 
-# 2) BOOTSTRAP SD DOT PLOT
+# 2) HISTOGRAM: POOLED BOOTSTRAP VS MULTI-RUN REFERENCE
+
+# =====================================================
+
+
+hist_min = min(np.min(boot_pooled), np.min(ns_ref))
+
+hist_max = max(np.max(boot_pooled), np.max(ns_ref))
+
+bins = np.linspace(hist_min, hist_max, HIST_BINS + 1)
+
+
+plt.figure(figsize=HIST_FIGSIZE)
+
+
+plt.hist(
+
+    boot_pooled,
+
+    bins=bins,
+
+    density=HIST_USE_DENSITY,
+
+    alpha=0.45,
+
+    label=f"Pooled bootstrap (n={boot_pooled.size})",
+
+)
+
+
+plt.hist(
+
+    ns_ref,
+
+    bins=bins,
+
+    density=HIST_USE_DENSITY,
+
+    alpha=0.55,
+
+    label=f"Multi-run NS reference (n={ns_ref.size})",
+
+)
+
+
+plt.axvline(
+
+    boot_pooled_mean,
+
+    linestyle="--",
+
+    linewidth=1.8,
+
+    label=f"Pooled bootstrap mean = {boot_pooled_mean:.3f}",
+
+)
+
+
+plt.axvline(
+
+    multi_run_mean,
+
+    linestyle=":",
+
+    linewidth=2.0,
+
+    label=f"Multi-run NS mean = {multi_run_mean:.3f}",
+
+)
+
+
+plt.xlabel("logZ")
+
+plt.ylabel("Density" if HIST_USE_DENSITY else "Count")
+
+plt.title(f"Histogram comparison: pooled bootstrap vs multi-run NS\n{LABEL}")
+
+plt.legend()
+
+plt.tight_layout()
+
+plt.savefig(OUT_DIR / f"hist_bootstrap_vs_multirun_{LABEL}.png", dpi=FIG_DPI)
+
+plt.close()
+
+
+print("Saved histogram comparison plot.")
+
+
+
+# =====================================================
+
+# 3) BOOTSTRAP SD DOT PLOT
 
 # =====================================================
 
@@ -419,7 +524,7 @@ print("Saved bootstrap SD dot plot.")
 
 # =====================================================
 
-# 3) NS-WITHIN-BOOTSTRAP PERCENTILE DOT PLOT
+# 4) NS-WITHIN-BOOTSTRAP PERCENTILE DOT PLOT
 
 # =====================================================
 
@@ -457,7 +562,7 @@ print("Saved percentile dot plot.")
 
 # =====================================================
 
-# 4) Z-SCORE DOT PLOT
+# 5) Z-SCORE DOT PLOT
 
 # =====================================================
 
@@ -498,7 +603,7 @@ print("Saved z-score dot plot.")
 
 # =====================================================
 
-# 5) OPTIONAL: SMALL SUMMARY BAR FOR CENTRE/SPREAD
+# 6) SPREAD SUMMARY BAR PLOT
 
 # =====================================================
 
@@ -524,7 +629,7 @@ summary_vals = [
 ]
 
 
-plt.figure(figsize=(6.8, 4.6))
+plt.figure(figsize=BAR_FIGSIZE)
 
 plt.bar(summary_names, summary_vals)
 
@@ -545,7 +650,7 @@ print("Saved spread summary bar plot.")
 
 # =====================================================
 
-# 6) TEXT SUMMARY
+# 7) TEXT SUMMARY
 
 # =====================================================
 
@@ -569,6 +674,10 @@ with open(summary_path, "w", encoding="utf-8") as f:
 
     f.write(f"QQ_N_QUANTILES = {QQ_N_QUANTILES}\n")
 
+    f.write(f"HIST_BINS = {HIST_BINS}\n")
+
+    f.write(f"HIST_USE_DENSITY = {HIST_USE_DENSITY}\n")
+
     f.write("\n")
 
 
@@ -581,15 +690,19 @@ with open(summary_path, "w", encoding="utf-8") as f:
     f.write("\n")
 
 
-    f.write(f"Mean bootstrap mean   = {float(np.mean(boot_means)):.10f}\n")
+    f.write(f"Pooled bootstrap mean   = {boot_pooled_mean:.10f}\n")
 
-    f.write(f"Median bootstrap mean = {float(np.median(boot_means)):.10f}\n")
+    f.write(f"Pooled bootstrap median = {boot_pooled_median:.10f}\n")
 
-    f.write(f"Mean bootstrap median = {float(np.mean(boot_medians)):.10f}\n")
+    f.write(f"Mean bootstrap mean     = {float(np.mean(boot_means)):.10f}\n")
 
-    f.write(f"Median bootstrap SD   = {float(np.nanmedian(boot_sds)):.10f}\n")
+    f.write(f"Median bootstrap mean   = {float(np.median(boot_means)):.10f}\n")
 
-    f.write(f"Mean bootstrap SD     = {float(np.nanmean(boot_sds)):.10f}\n")
+    f.write(f"Mean bootstrap median   = {float(np.mean(boot_medians)):.10f}\n")
+
+    f.write(f"Median bootstrap SD     = {float(np.nanmedian(boot_sds)):.10f}\n")
+
+    f.write(f"Mean bootstrap SD       = {float(np.nanmean(boot_sds)):.10f}\n")
 
     f.write("\n")
 
@@ -605,7 +718,7 @@ with open(summary_path, "w", encoding="utf-8") as f:
     f.write("\n")
 
 
-    f.write(f"Mean percentile of NS within bootstrap = {float(np.mean(percentiles_of_ns)):.10f}\n")
+    f.write(f"Mean percentile of NS within bootstrap   = {float(np.mean(percentiles_of_ns)):.10f}\n")
 
     f.write(f"Median percentile of NS within bootstrap = {float(np.median(percentiles_of_ns)):.10f}\n")
 

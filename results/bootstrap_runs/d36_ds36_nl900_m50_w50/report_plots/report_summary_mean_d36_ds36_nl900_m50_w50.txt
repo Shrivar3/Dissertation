@@ -5,29 +5,34 @@ Number of runs = 8
 AGG_MODE = mean
 RIBBON_QUANTILES = (0.25, 0.75)
 QQ_N_QUANTILES = 200
+HIST_BINS = 28
+HIST_USE_DENSITY = True
 
 Multi-run NS mean   = -180.5806062183
 Multi-run NS median = -180.5811008318
 Multi-run NS sd     = 0.2388395939
 
-Mean bootstrap mean   = -180.5651145019
-Median bootstrap mean = -180.5631663347
-Mean bootstrap median = -180.5664182644
-Median bootstrap SD   = 0.2679811033
-Mean bootstrap SD     = 0.2686938028
+Pooled bootstrap mean   = -180.5651145019
+Pooled bootstrap median = -180.5564133783
+Mean bootstrap mean     = -180.5651145019
+Median bootstrap mean   = -180.5631663347
+Mean bootstrap median   = -180.5664182644
+Median bootstrap SD     = 0.2679811033
+Mean bootstrap SD       = 0.2686938028
 
 Mean(NS - boot mean)     = -0.0154917163
 Median(NS - boot mean)   = -0.0129480074
 Mean(NS - boot median)   = -0.0141879539
 Median(NS - boot median) = -0.0069313110
 
-Mean percentile of NS within bootstrap = 0.4781250000
+Mean percentile of NS within bootstrap   = 0.4781250000
 Median percentile of NS within bootstrap = 0.4875000000
 Mean z-score = -0.0578017410
 SD z-score   = 0.0497240059
 
 Saved files:
   bootstrap_sd_dotplot_d36_ds36_nl900_m50_w50.png
+  hist_bootstrap_vs_multirun_d36_ds36_nl900_m50_w50.png
   percentile_dotplot_d36_ds36_nl900_m50_w50.png
   qq_ribbon_mean_d36_ds36_nl900_m50_w50.png
   qq_ribbon_median_d36_ds36_nl900_m50_w50.png
