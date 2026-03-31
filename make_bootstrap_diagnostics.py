@@ -25,9 +25,9 @@ from matplotlib.lines import Line2D
 # =====================================================
 
 
-LABEL = "nl300_m50_w50"
+LABEL = "d72_ds72_nl1800_m50_w50"
 
-TRUE_LOGZ = -181.6405566802
+TRUE_LOGZ = -229.529032
 
 
 ROOT = Path(f"results/bootstrap_runs/{LABEL}")

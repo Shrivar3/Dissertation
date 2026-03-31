@@ -1,0 +1,21 @@
+LABEL = d36_ds36_nl900_m50_w50
+TRUE_LOGZ = -180.744949
+Number of bootstrap runs = 8
+Chunk directory = results/bootstrap_runs/d36_ds36_nl900_m50_w50/chunk_summaries
+Output directory = results/bootstrap_runs/d36_ds36_nl900_m50_w50/diagnostics
+QQ_AGG_MODE = mean
+COV_RUNS_PER_FIG = 50
+
+Saved files:
+  bootstrap_sd_hist_d36_ds36_nl900_m50_w50.png
+  coverage_runs_001_008_d36_ds36_nl900_m50_w50.png
+  diagnostic_summary_d36_ds36_nl900_m50_w50.txt
+  diagnostic_summary_generic_d36_ds36_nl900_m50_w50.txt
+  ns_percentile_hist_d36_ds36_nl900_m50_w50.png
+  point_containment_runs_001_008_d36_ds36_nl900_m50_w50.png
+  qq_runs_001_008_mean_d36_ds36_nl900_m50_w50.png
+  qq_runs_001_008_median_d36_ds36_nl900_m50_w50.png
+  qq_second_order_run001_d36_ds36_nl900_m50_w50.png
+  wasserstein_vs_k_all_d36_ds36_nl900_m50_w50.png
+  wasserstein_vs_k_first_8_d36_ds36_nl900_m50_w50.png
+  zscore_hist_d36_ds36_nl900_m50_w50.png
