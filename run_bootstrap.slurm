@@ -4,7 +4,7 @@
 #SBATCH --time=1-24:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=6
 #SBATCH --mem-per-cpu=3700
 #SBATCH --output=slurm-bootstrap-%j.out
 #SBATCH --mail-type=END,FAIL
