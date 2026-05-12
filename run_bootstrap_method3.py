@@ -15,6 +15,7 @@ from typing import List
 import numpy as np
 
 
+
 # ============================================================
 
 # PATH SETUP
@@ -42,6 +43,7 @@ from bootstrap_common import (
 )
 
 
+
 # ============================================================
 
 # TIMER
@@ -55,7 +57,7 @@ GLOBAL_START = time.perf_counter()
 
 def format_time(seconds: float) -> str:
 
-    seconds = int(seconds)
+    seconds = int(max(0, round(seconds)))
 
     d = seconds // 86400
 
@@ -75,15 +77,48 @@ def format_time(seconds: float) -> str:
 
 def eta_str(elapsed: float, done: int, total: int) -> str:
 
-    if done <= 0:
+    if done <= 0 or total <= 0:
 
         return "??:??:??"
 
     per = elapsed / done
 
-    rem = per * (total - done)
+    rem = per * max(0, total - done)
 
     return format_time(rem)
+
+
+
+# ============================================================
+
+# ENV HELPERS
+
+# ============================================================
+
+
+def get_env_bool(name: str, default: bool) -> bool:
+
+    val = os.environ.get(name, str(default))
+
+    return val.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+
+def get_chunk_id() -> int:
+
+    """
+
+    Prefer SLURM_ARRAY_TASK_ID when running as a Slurm array job.
+
+    Fall back to CHUNK_ID if set manually, else 0.
+
+    """
+
+    if "SLURM_ARRAY_TASK_ID" in os.environ:
+
+        return int(os.environ["SLURM_ARRAY_TASK_ID"])
+
+    return int(os.environ.get("CHUNK_ID", "0"))
 
 
 
@@ -99,7 +134,7 @@ LABEL = os.environ.get("LABEL", "nl100_m20_w20")
 
 # Family-level seed bases
 
-BOOT_RUNS = int(os.environ.get("BOOT_RUNS", "35"))  # retained for compatibility / info
+BOOT_RUNS = int(os.environ.get("BOOT_RUNS", "35"))
 
 DATA_SEED = int(os.environ.get("DATA_SEED", "415"))
 
@@ -110,15 +145,18 @@ BOOT_BASE_SEED = int(os.environ.get("BOOT_BASE_SEED", "2000"))
 
 # Chunking
 
-CHUNK_ID = int(os.environ.get("CHUNK_ID", "0"))
+CHUNK_ID = get_chunk_id()
+
+SLURM_ARRAY_TASK_ID = os.environ.get("SLURM_ARRAY_TASK_ID", None)
 
 CHUNK_SIZE = int(os.environ.get("CHUNK_SIZE", str(BOOT_RUNS)))
 
+
 RUN_START = CHUNK_ID * CHUNK_SIZE
 
-RUN_STOP = RUN_START + CHUNK_SIZE
+RUN_STOP = min(RUN_START + CHUNK_SIZE, BOOT_RUNS)
 
-RUN_COUNT = RUN_STOP - RUN_START
+RUN_COUNT = max(0, RUN_STOP - RUN_START)
 
 
 # Bootstrap controls
@@ -148,7 +186,7 @@ n = int(os.environ.get("N", "600"))
 
 p = int(os.environ.get("P", "12"))
 
-use_correlated_X = os.environ.get("USE_CORRELATED_X", "False").lower() == "true"
+use_correlated_X = get_env_bool("USE_CORRELATED_X", False)
 
 rho = float(os.environ.get("RHO", "1.0"))
 
@@ -156,8 +194,7 @@ sigma_beta = float(os.environ.get("SIGMA_BETA", "1.0"))
 
 sparsity = float(os.environ.get("SPARSITY", "0.0"))
 
-include_intercept = os.environ.get("INCLUDE_INTERCEPT", "False").lower() == "true"
-
+include_intercept = get_env_bool("INCLUDE_INTERCEPT", False)
 
 tau_prior = float(os.environ.get("TAU_PRIOR", "1.0"))
 
@@ -178,7 +215,7 @@ patience = int(os.environ.get("PATIENCE", "40"))
 
 stable_repeats = int(os.environ.get("STABLE_REPEATS", "2"))
 
-verbose = os.environ.get("VERBOSE", "False").lower() == "true"
+verbose = get_env_bool("VERBOSE", False)
 
 verbose_interval = int(os.environ.get("VERBOSE_INTERVAL", "500"))
 
@@ -197,7 +234,8 @@ mh_step_size_min = float(os.environ.get("MH_STEP_SIZE_MIN", "1e-6"))
 
 mh_step_size_max = float(os.environ.get("MH_STEP_SIZE_MAX", "10.0"))
 
-mh_store_warmup = os.environ.get("MH_STORE_WARMUP", "False").lower() == "true"
+mh_store_warmup = get_env_bool("MH_STORE_WARMUP", False)
+
 
 
 # ============================================================
@@ -238,6 +276,7 @@ MULTI_RUN_REF_PATH = Path(
     )
 
 )
+
 
 
 # ============================================================
@@ -285,7 +324,16 @@ print(f"[config tag low ] {TAG_LOW}")
 
 print(f"[config tag full] {TAG_FULL}")
 
-print(f"[chunk] CHUNK_ID={CHUNK_ID} CHUNK_SIZE={CHUNK_SIZE} RUN_START={RUN_START} RUN_STOP={RUN_STOP}")
+print(
+
+    f"[chunk] SLURM_ARRAY_TASK_ID={SLURM_ARRAY_TASK_ID} "
+
+    f"CHUNK_ID={CHUNK_ID} CHUNK_SIZE={CHUNK_SIZE} "
+
+    f"RUN_START={RUN_START} RUN_STOP={RUN_STOP} RUN_COUNT={RUN_COUNT}"
+
+)
+
 
 
 # ============================================================
@@ -327,6 +375,7 @@ if logZs_multi.size > 1:
 else:
 
     print(f"[multi-run ref] mean={logZs_multi.mean(): .6f}, sd=nan")
+
 
 
 # ============================================================
@@ -682,9 +731,17 @@ def forward_sweep_upper_coupled_force0(
 
     val0 = _rand_uniform_from_sorted_in_interval(
 
-        lowest_pool, low=last, high=high0, rng=rng,
+        lowest_pool,
 
-        allow_equal_low=allow_equal_lower, allow_equal_high=True
+        low=last,
+
+        high=high0,
+
+        rng=rng,
+
+        allow_equal_low=allow_equal_lower,
+
+        allow_equal_high=True,
 
     )
 
@@ -692,9 +749,17 @@ def forward_sweep_upper_coupled_force0(
 
         val0 = _rand_uniform_from_sorted_in_interval(
 
-            cand, low=last, high=high0, rng=rng,
+            cand,
 
-            allow_equal_low=allow_equal_lower, allow_equal_high=True
+            low=last,
+
+            high=high0,
+
+            rng=rng,
+
+            allow_equal_low=allow_equal_lower,
+
+            allow_equal_high=True,
 
         )
 
@@ -725,9 +790,17 @@ def forward_sweep_upper_coupled_force0(
 
         val = _rand_uniform_from_sorted_in_interval(
 
-            cand, low=low, high=high, rng=rng,
+            cand,
 
-            allow_equal_low=allow_equal_lower, allow_equal_high=True
+            low=low,
+
+            high=high,
+
+            rng=rng,
+
+            allow_equal_low=allow_equal_lower,
+
+            allow_equal_high=True,
 
         )
 
@@ -801,9 +874,17 @@ def backward_sweep_lower_coupled_lock0(
 
         val = _rand_uniform_from_sorted_in_interval(
 
-            cand, low=low, high=high, rng=rng,
+            cand,
 
-            allow_equal_low=True, allow_equal_high=allow_equal_lower
+            low=low,
+
+            high=high,
+
+            rng=rng,
+
+            allow_equal_low=True,
+
+            allow_equal_high=allow_equal_lower,
 
         )
 
@@ -892,7 +973,7 @@ def swish_block_mix_lock0(
             continue
 
 
-        use_upper = (rng.rand() < float(p_use_upper_coupling))
+        use_upper = rng.rand() < float(p_use_upper_coupling)
 
         idxs = np.arange(a, b + 1)
 
@@ -928,9 +1009,17 @@ def swish_block_mix_lock0(
 
                 val = _rand_uniform_from_sorted_in_interval(
 
-                    cand, low=low, high=high, rng=rng,
+                    cand,
 
-                    allow_equal_low=True, allow_equal_high=allow_equal_lower
+                    low=low,
+
+                    high=high,
+
+                    rng=rng,
+
+                    allow_equal_low=True,
+
+                    allow_equal_high=allow_equal_lower,
 
                 )
 
@@ -1193,6 +1282,80 @@ def method3_stochshrink_two_sided_chain_force_lowest0(
 
 # ============================================================
 
+# EARLY EXIT IF THIS CHUNK HAS NO ASSIGNED RUNS
+
+# ============================================================
+
+
+if RUN_COUNT <= 0:
+
+    summary_path = CHUNK_SUMMARY_DIR / (
+
+        f"bootstrap_summary_{LABEL}_{TAG_FULL}_chunk{CHUNK_ID:03d}.npz"
+
+    )
+
+
+    np.savez_compressed(
+
+        summary_path,
+
+        label=np.array([LABEL], dtype=object),
+
+        tag=np.array([TAG_FULL], dtype=object),
+
+        tag_base=np.array([TAG_BASE], dtype=object),
+
+        tag_low=np.array([TAG_LOW], dtype=object),
+
+        multi_run_ref_path=np.array([str(MULTI_RUN_REF_PATH)], dtype=object),
+
+        chunk_id=int(CHUNK_ID),
+
+        chunk_size=int(CHUNK_SIZE),
+
+        run_start=int(RUN_START),
+
+        run_stop=int(RUN_STOP),
+
+        run_count=int(RUN_COUNT),
+
+        boot_runs_nominal=int(BOOT_RUNS),
+
+        n_boot_per_run=int(N_BOOT_PER_RUN),
+
+        n_shrink=int(N_SHRINK),
+
+        ns_base_seed=int(NS_BASE_SEED),
+
+        boot_base_seed=int(BOOT_BASE_SEED),
+
+        lowest_pool_ns_seed=int(LOWEST_POOL_NS_SEED),
+
+        ns_seeds=np.array([], dtype=np.int64),
+
+        boot_seeds=np.array([], dtype=np.int64),
+
+        ns_logZs=np.array([], dtype=float),
+
+        pooled_boot_logZ=np.array([], dtype=float),
+
+        saved_ns_paths=np.array([], dtype=object),
+
+        saved_boot_paths=np.array([], dtype=object),
+
+    )
+
+    print(f"[chunk] no assigned runs; wrote empty summary to {summary_path}")
+
+    print(f"[TIMER] total runtime = {format_time(time.perf_counter() - GLOBAL_START)}")
+
+    raise SystemExit(0)
+
+
+
+# ============================================================
+
 # INITIAL NS RUN TO BUILD LOWEST POOL
 
 # ============================================================
@@ -1284,6 +1447,7 @@ print(
     f"sd={lowest_pool_logL.std(ddof=1): .6f}"
 
 )
+
 
 
 # ============================================================

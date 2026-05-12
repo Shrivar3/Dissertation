@@ -1,0 +1,56 @@
+LABEL = d72_ds72_nl1800_m50_w50
+CHUNK_DIR = results/bootstrap_runs/d72_ds72_nl1800_m50_w50/chunk_summaries
+OUT_DIR = results/bootstrap_runs/d72_ds72_nl1800_m50_w50/sd_diagnostics
+Number of runs = 37
+SORT_BOOT_SD = True
+INCLUDE_SUMMARY_BAR = True
+
+Multi-run NS SD = 0.2682490154
+Mean bootstrap SD = 0.2498186118
+Median bootstrap SD = 0.2505887520
+Mean bootstrap SD / multi-run SD = 0.9312936766
+Median bootstrap SD / multi-run SD = 0.9341646663
+
+Per-run bootstrap SDs:
+ Run 001: 0.2531829828
+ Run 002: 0.2367214547
+ Run 003: 0.2480654836
+ Run 004: 0.2502353861
+ Run 005: 0.2326572759
+ Run 006: 0.2359187541
+ Run 007: 0.2402279402
+ Run 008: 0.2601677780
+ Run 009: 0.2435259570
+ Run 010: 0.2412943918
+ Run 011: 0.2534840369
+ Run 012: 0.2491882363
+ Run 013: 0.2519564007
+ Run 014: 0.2567050820
+ Run 015: 0.2558792904
+ Run 016: 0.2585629985
+ Run 017: 0.2514870636
+ Run 018: 0.2459637727
+ Run 019: 0.2612930762
+ Run 020: 0.2505887520
+ Run 021: 0.2704386114
+ Run 022: 0.2603998413
+ Run 023: 0.2301589685
+ Run 024: 0.2631290037
+ Run 025: 0.2434513657
+ Run 026: 0.2713337122
+ Run 027: 0.2658962842
+ Run 028: 0.2463086732
+ Run 029: 0.2376040379
+ Run 030: 0.2566202061
+ Run 031: 0.2343382149
+ Run 032: 0.2394604451
+ Run 033: 0.2262866412
+ Run 034: 0.2601030702
+ Run 035: 0.2419515150
+ Run 036: 0.2586340025
+ Run 037: 0.2600679308
+
+Saved files:
+ bootstrap_sd_dotplot_d72_ds72_nl1800_m50_w50.png
+ sd_summary_d72_ds72_nl1800_m50_w50.txt
+ spread_summary_bar_d72_ds72_nl1800_m50_w50.png
