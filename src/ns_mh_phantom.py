@@ -77,6 +77,32 @@ def _logmeanexp(arr: np.ndarray) -> float:
         return -np.inf
     return m + np.log(np.mean(np.exp(arr - m)))
 
+def prior_beta_cholesky_from_X(
+    X: np.ndarray,
+    jitter: float = 1e-10,
+    fallback_jitter: float = 1e-6,
+) -> Tuple[np.ndarray, np.ndarray, float]:
+    """
+    Return L_beta such that beta = L_beta @ z has covariance
+
+        Sigma_beta = n * (X'X + jitter I)^{-1},
+
+    matching the Gaussian prior used inside the Nested Sampling model.
+    """
+    n_obs, p = X.shape
+    XtX = X.T @ X
+    I = np.eye(p)
+
+    Sigma_beta = n_obs * np.linalg.inv(XtX + jitter * I)
+
+    try:
+        L_beta = np.linalg.cholesky(Sigma_beta)
+        return L_beta, Sigma_beta, jitter
+    except np.linalg.LinAlgError:
+        Sigma_beta = n_obs * np.linalg.inv(XtX + fallback_jitter * I)
+        L_beta = np.linalg.cholesky(Sigma_beta)
+        return L_beta, Sigma_beta, fallback_jitter
+
 
 # ============================================================
 # Simulation
@@ -98,30 +124,55 @@ def simulate_logistic_data(
     p: int,
     use_correlated_X: bool = False,
     rho: float = 0.3,
-    sigma_beta: float = 0.75,
+    beta_generation: str = "inferential_prior",
+    sigma_beta: float = 1.0,
     sparsity: float = 0.0,
     include_intercept: bool = True,
+    tau0: float = 1.0,
     seed: Optional[int] = None,
 ) -> SimResult:
     set_seed(seed)
 
     if use_correlated_X:
         cov = ar1_cov(p, rho)
-        L = np.linalg.cholesky(cov + 1e-12 * np.eye(p))
-        X_raw = np.random.randn(n, p) @ L.T
+        L_X = np.linalg.cholesky(cov + 1e-12 * np.eye(p))
+        X_raw = np.random.randn(n, p) @ L_X.T
     else:
         X_raw = np.random.randn(n, p)
 
     X, means, sds = standardize_columns(X_raw)
 
-    beta = sigma_beta * np.random.randn(p)
-    if sparsity > 0:
-        k_zero = int(np.floor(sparsity * p))
-        if k_zero > 0:
-            zero_idx = np.random.choice(p, size=k_zero, replace=False)
-            beta[zero_idx] = 0.0
+    beta_generation = str(beta_generation).lower()
 
-    beta0 = np.random.randn() if include_intercept else 0.0
+    if beta_generation in {"inferential_prior", "prior", "g_prior"}:
+        if sparsity > 0:
+            raise ValueError(
+                "sparsity must be 0 when beta_generation='inferential_prior', "
+                "otherwise the synthetic truth is no longer drawn from the stated prior."
+            )
+
+        L_beta, Sigma_beta, prior_jitter_used = prior_beta_cholesky_from_X(X)
+        beta = L_beta @ np.random.randn(p)
+
+    elif beta_generation in {"isotropic", "old", "sigma"}:
+        beta = float(sigma_beta) * np.random.randn(p)
+        Sigma_beta = (float(sigma_beta) ** 2) * np.eye(p)
+        prior_jitter_used = None
+
+        if sparsity > 0:
+            k_zero = int(np.floor(sparsity * p))
+            if k_zero > 0:
+                zero_idx = np.random.choice(p, size=k_zero, replace=False)
+                beta[zero_idx] = 0.0
+
+    else:
+        raise ValueError(
+            "beta_generation must be one of "
+            "{'inferential_prior', 'prior', 'g_prior', 'isotropic', 'old', 'sigma'}."
+        )
+
+    beta0 = float(tau0) * np.random.randn() if include_intercept else 0.0
+
     eta = beta0 + X @ beta
     pi = sigmoid(eta)
     y = np.random.binomial(1, pi, size=n)
@@ -137,11 +188,14 @@ def simulate_logistic_data(
             n=n,
             p=p,
             rho=rho,
+            beta_generation=beta_generation,
             sigma_beta=sigma_beta,
             sparsity=sparsity,
             use_correlated_X=use_correlated_X,
             include_intercept=include_intercept,
+            tau0=tau0,
             seed=seed,
+            prior_jitter_used=prior_jitter_used,
         ),
     )
 
@@ -693,15 +747,17 @@ def run_ns_mh_phantom(
     End-to-end wrapper: simulate data -> payload -> preconditioner -> nested sampling.
     """
     sim = simulate_logistic_data(
-        n=int(n),
-        p=int(p),
-        use_correlated_X=bool(use_correlated_X),
-        rho=float(rho),
-        sigma_beta=float(sigma_beta),
-        sparsity=float(sparsity),
-        include_intercept=bool(include_intercept),
-        seed=data_seed,
-    )
+    n=int(n),
+    p=int(p),
+    use_correlated_X=bool(use_correlated_X),
+    rho=float(rho),
+    beta_generation="inferential_prior",
+    sigma_beta=float(sigma_beta),
+    sparsity=float(sparsity),
+    include_intercept=bool(include_intercept),
+    tau0=float(tau_prior),
+    seed=data_seed,
+)
 
     payload = make_payload(
         sim,
