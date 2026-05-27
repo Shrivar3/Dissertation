@@ -31,7 +31,7 @@ DATA_SEED = int(os.environ.get("DATA_SEED", "415"))
 
 BASE_SEED0 = int(os.environ.get("BASE_SEED0", "415"))
 
-N_ITER_MAX = int(os.environ.get("N_ITER_MAX", "500000"))
+N_ITER_MAX = int(os.environ.get("N_ITER_MAX", "5000000"))
 
 
 LABEL = os.environ.get(

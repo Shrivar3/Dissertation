@@ -1,10 +1,10 @@
 #!/bin/bash
 
 #SBATCH --job-name=bootstrap_family
-#SBATCH --time=24:00:00
+#SBATCH --time=1-24:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=6
 #SBATCH --mem-per-cpu=3700
 #SBATCH --output=slurm-bootstrap-%j.out
 #SBATCH --mail-type=END,FAIL
@@ -23,10 +23,14 @@ echo "LABEL=$LABEL"
 echo "MULTI_RUN_REF_PATH=$MULTI_RUN_REF_PATH"
 echo "BOOT_RUNS=$BOOT_RUNS"
 echo "N_BOOT_PER_RUN=$N_BOOT_PER_RUN"
+echo "N=$N"
+echo "P=$P"
 echo "N_LIVE=$N_LIVE"
 echo "NS_MCMC_STEPS=$NS_MCMC_STEPS"
 echo "MH_WARMUP_STEPS=$MH_WARMUP_STEPS"
 echo "DATA_SEED=$DATA_SEED"
+echo "NS_BASE_SEED=$NS_BASE_SEED"
+echo "BOOT_BASE_SEED=$BOOT_BASE_SEED"
 
 python run_bootstrap_method3.py
 

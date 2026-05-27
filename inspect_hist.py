@@ -1,6 +1,13 @@
+from __future__ import annotations
+
+
 from pathlib import Path
 
+import sys
+
+
 import numpy as np
+
 
 import matplotlib
 
@@ -12,14 +19,41 @@ import matplotlib.pyplot as plt
 
 # =====================================================
 
-# CONFIG
+# ARGUMENTS
 
 # =====================================================
 
 
-NPZ_PATH = Path("results/test_runs/TEST_ns_multi_runs_5_ds415_nl100_m20_w20.npz")
+if len(sys.argv) < 2:
 
-OUT_PNG = NPZ_PATH.with_name("TEST_ns_multi_runs_5_ds415_nl100_m20_w20_hist.png")
+    raise SystemExit(
+
+        "Usage:\n"
+
+        "  python inspect_hist.py <input_npz> [output_png] [plot_title]"
+
+    )
+
+
+NPZ_PATH = Path(sys.argv[1]).expanduser().resolve()
+
+
+if len(sys.argv) >= 3:
+
+    OUT_PNG = Path(sys.argv[2]).expanduser().resolve()
+
+else:
+
+    OUT_PNG = NPZ_PATH.with_name(f"{NPZ_PATH.stem}_hist.png")
+
+
+if len(sys.argv) >= 4:
+
+    PLOT_TITLE = sys.argv[3]
+
+else:
+
+    PLOT_TITLE = f"Histogram: {NPZ_PATH.stem}"
 
 
 
@@ -31,8 +65,6 @@ OUT_PNG = NPZ_PATH.with_name("TEST_ns_multi_runs_5_ds415_nl100_m20_w20_hist.png"
 
 
 def safe_summary(arr):
-
-    """Return a readable summary without crashing on object arrays."""
 
     try:
 
@@ -46,27 +78,15 @@ def safe_summary(arr):
 
 def try_extract_numeric_1d(arr):
 
-    """
-
-    Try to turn an array-like object into a 1D numeric numpy array.
-
-    Returns None if that is not possible.
-
-    """
-
     try:
 
         x = np.asarray(arr)
 
 
-        # Already numeric
-
         if np.issubdtype(x.dtype, np.number):
 
             return x.ravel()
 
-
-        # Object array: try elementwise float conversion
 
         if x.dtype == object:
 
@@ -95,12 +115,6 @@ def try_extract_numeric_1d(arr):
 
 
 def extract_logz_from_object_array(arr):
-
-    """
-
-    If arr is an object array of dict-like objects, try to extract logZ-ish values.
-
-    """
 
     try:
 
@@ -187,9 +201,7 @@ x = None
 chosen_key = None
 
 
-# First try likely direct logZ keys
-
-preferred_keys = ["logZs", "logZ", "logz", "est_logZ", "log_evidence"]
+preferred_keys = ["logZs", "pooled_boot_logZ", "logZ", "logz", "est_logZ", "log_evidence"]
 
 
 for key in preferred_keys:
@@ -207,8 +219,6 @@ for key in preferred_keys:
             break
 
 
-# If that failed, search all keys for a numeric 1D array of length > 1
-
 if x is None:
 
     for key in data.files:
@@ -223,8 +233,6 @@ if x is None:
 
             break
 
-
-# If that failed, try extracting logZ values from object arrays of dicts
 
 if x is None:
 
@@ -247,12 +255,10 @@ if x is None:
 
         "Could not find a plottable numeric array in the NPZ file. "
 
-        "Please share the printed keys and I’ll help you target the exact one."
+        "Please inspect the printed keys."
 
     )
 
-
-# Remove NaN / inf just in case
 
 x = np.asarray(x, dtype=float)
 
@@ -274,10 +280,6 @@ if x.size == 0:
 
 print(f"\nUsing key: {chosen_key}")
 
-print("Values:")
-
-print(x)
-
 
 if x.size >= 2:
 
@@ -292,11 +294,15 @@ else:
     sd = 0.0
 
 
-print(f"\nCount: {x.size}")
+print(f"Count: {x.size}")
 
-print(f"Mean: {mean:.6f}")
+print(f"Mean:  {mean:.6f}")
 
-print(f"SD:   {sd:.6f}")
+print(f"SD:    {sd:.6f}")
+
+print(f"Min:   {np.min(x):.6f}")
+
+print(f"Max:   {np.max(x):.6f}")
 
 
 
@@ -311,11 +317,15 @@ plt.figure(figsize=(7, 5))
 
 plt.hist(x, bins="auto", edgecolor="black")
 
+plt.axvline(mean, linestyle="--", linewidth=1.5, label=f"Mean = {mean:.4f}")
+
 plt.xlabel(chosen_key)
 
 plt.ylabel("Frequency")
 
-plt.title("Histogram from multi-run NPZ")
+plt.title(PLOT_TITLE)
+
+plt.legend()
 
 plt.tight_layout()
 

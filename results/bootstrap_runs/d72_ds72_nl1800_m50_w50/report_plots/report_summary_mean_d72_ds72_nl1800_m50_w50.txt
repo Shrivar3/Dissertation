@@ -1,0 +1,42 @@
+LABEL = d72_ds72_nl1800_m50_w50
+CHUNK_DIR = results/bootstrap_runs/d72_ds72_nl1800_m50_w50/chunk_summaries
+OUT_DIR = results/bootstrap_runs/d72_ds72_nl1800_m50_w50/report_plots
+Number of runs = 4
+AGG_MODE = mean
+RIBBON_QUANTILES = (0.25, 0.75)
+QQ_N_QUANTILES = 200
+HIST_BINS = 28
+HIST_USE_DENSITY = True
+
+Multi-run NS mean   = -229.3592637168
+Multi-run NS median = -229.4383882892
+Multi-run NS sd     = 0.2437423668
+
+Pooled bootstrap mean   = -229.3673668584
+Pooled bootstrap median = -229.3808056875
+Mean bootstrap mean     = -229.3673668584
+Median bootstrap mean   = -229.4469517826
+Mean bootstrap median   = -229.3670543991
+Median bootstrap SD     = 0.2404181750
+Mean bootstrap SD       = 0.2397246114
+
+Mean(NS - boot mean)     = 0.0081031416
+Median(NS - boot mean)   = 0.0077805164
+Mean(NS - boot median)   = 0.0077906824
+Median(NS - boot median) = 0.0049951027
+
+Mean percentile of NS within bootstrap   = 0.5137500000
+Median percentile of NS within bootstrap = 0.5150000000
+Mean z-score = 0.0342289022
+SD z-score   = 0.0686380133
+
+Saved files:
+  bootstrap_sd_dotplot_d72_ds72_nl1800_m50_w50.png
+  hist_bootstrap_vs_multirun_d72_ds72_nl1800_m50_w50.png
+  percentile_dotplot_d72_ds72_nl1800_m50_w50.png
+  qq_ribbon_mean_d72_ds72_nl1800_m50_w50.png
+  qq_ribbon_median_d72_ds72_nl1800_m50_w50.png
+  report_summary_mean_d72_ds72_nl1800_m50_w50.txt
+  report_summary_median_d72_ds72_nl1800_m50_w50.txt
+  spread_summary_bar_d72_ds72_nl1800_m50_w50.png
+  zscore_dotplot_d72_ds72_nl1800_m50_w50.png

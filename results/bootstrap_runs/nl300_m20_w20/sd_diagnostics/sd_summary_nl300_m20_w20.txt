@@ -1,0 +1,49 @@
+LABEL = nl300_m20_w20
+CHUNK_DIR = results/bootstrap_runs/nl300_m20_w20/chunk_summaries
+OUT_DIR = results/bootstrap_runs/nl300_m20_w20/sd_diagnostics
+Number of runs = 30
+SORT_BOOT_SD = True
+INCLUDE_SUMMARY_BAR = True
+
+Multi-run NS SD = 0.3055033203
+Mean bootstrap SD = 0.2975308057
+Median bootstrap SD = 0.2977240549
+Mean bootstrap SD / multi-run SD = 0.9739036729
+Median bootstrap SD / multi-run SD = 0.9745362329
+
+Per-run bootstrap SDs:
+ Run 001: 0.3034789204
+ Run 002: 0.2960857681
+ Run 003: 0.2906990792
+ Run 004: 0.3209449534
+ Run 005: 0.2810634155
+ Run 006: 0.3030050599
+ Run 007: 0.3039603821
+ Run 008: 0.3139718016
+ Run 009: 0.2945516865
+ Run 010: 0.2806229903
+ Run 011: 0.2756916475
+ Run 012: 0.3201928949
+ Run 013: 0.2946888785
+ Run 014: 0.2755969688
+ Run 015: 0.2857034928
+ Run 016: 0.3204972154
+ Run 017: 0.3034582679
+ Run 018: 0.3115759671
+ Run 019: 0.2973242257
+ Run 020: 0.2880224624
+ Run 021: 0.2981238841
+ Run 022: 0.2985055362
+ Run 023: 0.3025431398
+ Run 024: 0.2726743691
+ Run 025: 0.3113625228
+ Run 026: 0.3060395016
+ Run 027: 0.2644662518
+ Run 028: 0.2846470697
+ Run 029: 0.2936935119
+ Run 030: 0.3327323060
+
+Saved files:
+ bootstrap_sd_dotplot_nl300_m20_w20.png
+ sd_summary_nl300_m20_w20.txt
+ spread_summary_bar_nl300_m20_w20.png
