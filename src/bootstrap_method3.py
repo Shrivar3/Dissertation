@@ -8,9 +8,6 @@
 #     2. keep the same anchor fixed for S anchored two-sweep updates;
 #     3. simulate an independent static shrinkage path;
 #     4. compute the bootstrap log-evidence.
-#
-# This version intentionally removes the older SWISH block-mixing layer from the
-# canonical submitted-method path.
 # ============================================================
 
 from __future__ import annotations
@@ -171,8 +168,6 @@ def anchored_two_sweep_update(
     """
     One anchored empirical two-sweep transition.
 
-    This is the code version of the submitted dissertation mechanism:
-
     - coordinate 0 is fixed to the sampled anchor;
     - the upper sweep updates left-to-right;
     - the lower sweep updates right-to-left;
@@ -279,8 +274,6 @@ def method3_stochshrink_anchored_two_sweep_chain(
     print_every: int = 0,
 ) -> Dict[str, object]:
     """
-    Submitted-dissertation version of Method 3.
-
     For each stored bootstrap replicate:
     1. draw one fresh anchor from the anchor pool;
     2. keep that anchor fixed;
@@ -424,15 +417,7 @@ def method3_stochshrink_two_sided_chain(
     print_every: int = 0,
     **unused_kwargs,
 ) -> Dict[str, object]:
-    """
-    Backward-compatible wrapper.
 
-    The old function name is retained so notebooks do not immediately break,
-    but the canonical implementation is now the submitted-dissertation anchored
-    two-sweep bootstrap.
-
-    You must pass anchor_pool_logL.
-    """
     if anchor_pool_logL is None:
         raise ValueError(
             "anchor_pool_logL must be supplied. "
