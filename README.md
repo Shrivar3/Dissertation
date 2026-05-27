@@ -1,6 +1,6 @@
 # Dissertation: Uncertainty Quantification in Nested Sampling
 
-MSc Dissertation Code – University of Warwick – 2026
+Masters Dissertation Code – University of Warwick – 2026
 
 This repository contains the code, experiments, and supporting material for my MSc dissertation at the University of Warwick:
 
@@ -13,7 +13,7 @@ The project investigates bootstrap-based methods for estimating the uncertainty 
 ## Author
 
 **Shrivar Singh**  
-MSc MMORSE (Statistics Stream)  
+MMORSE (Data Analysis Stream)  
 University of Warwick  
 
 Supervisors: Prof. Christian Robert & Dr. Nicholas Tawn
