@@ -1,7 +1,6 @@
 # ============================================================
 # src/bootstrap_method3.py
 #
-# Dissertation-matching Method 3 bootstrap:
 # - Candidate pool from dead + phantom log-likelihood values.
 # - Anchor pool: H anchor values, each the minimum of n_live prior log-likelihoods.
 # - For each bootstrap replicate:
