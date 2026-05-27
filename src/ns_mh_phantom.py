@@ -1,7 +1,6 @@
 # ============================================================
 # NESTED SAMPLING (MH constrained kernel) + PHANTOM STORAGE
 #
-# Dissertation-matching version:
 # - Deterministic shrinkage static Nested Sampling.
 # - Constrained RW-MH replacement kernel in whitened space.
 # - Warmup tunes the proposal scale.
@@ -405,7 +404,6 @@ def mh_constrained_kernel_precond_with_trace(
     """
     Constrained RW-MH in whitened coordinates z = L^{-1} theta.
 
-    Dissertation-matching behaviour:
     - warmup starts from the chosen live-point seed and adapts the proposal scale;
     - after warmup, production restarts from the original seed point;
     - only production states are stored by default as phantom points.
